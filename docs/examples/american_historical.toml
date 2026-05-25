@@ -1,0 +1,64 @@
+[world]
+name = "The Gilded Republic"
+era = "1880-1920"
+setting = "american_historical"
+seed = 42
+
+[population]
+size = 1000
+regions = ["northeast", "midwest", "south"]
+
+# Each [[attributes]] entry describes one field sampled per entity.
+# Supported types: uniform_int, uniform_float, normal, choice
+
+[[attributes]]
+name = "age"
+type = "normal"
+mean = 35.0
+std_dev = 14.0
+min = 0.0
+max = 90.0
+
+[[attributes]]
+name = "birth_year"
+type = "uniform_int"
+low = 1830
+high = 1895
+
+[[attributes]]
+name = "gender"
+type = "choice"
+values = ["male", "female"]
+weights = [51.0, 49.0]
+
+[[attributes]]
+name = "region"
+type = "choice"
+values = ["northeast", "midwest", "south", "west"]
+weights = [35.0, 30.0, 25.0, 10.0]
+
+[[attributes]]
+name = "occupation_class"
+type = "choice"
+values = ["laborer", "skilled_trade", "farmer", "merchant", "professional", "domestic_service"]
+weights = [30.0, 20.0, 25.0, 12.0, 8.0, 5.0]
+
+[[attributes]]
+name = "wealth_score"
+type = "normal"
+mean = 40.0
+std_dev = 20.0
+min = 0.0
+max = 100.0
+
+[[attributes]]
+name = "literacy"
+type = "choice"
+values = [true, false]
+weights = [70.0, 30.0]
+
+[[attributes]]
+name = "children"
+type = "uniform_int"
+low = 0
+high = 8

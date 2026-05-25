@@ -19,10 +19,17 @@ class Corpus:
 
     @classmethod
     def generate(cls, world: "World", scale: int) -> "Corpus":
+        from asynmov._core import generate_entities
+
         corpus = cls()
-        # Placeholder: actual generation delegates to Rust in future passes.
-        for i in range(scale):
-            corpus.entities.append({"id": i, "world": world.name})
+
+        attr_specs = world.config.get("attributes", [])
+        if attr_specs:
+            specs_json = json.dumps(attr_specs)
+            corpus.entities = json.loads(generate_entities(world.seed, scale, specs_json))
+        else:
+            corpus.entities = [{"id": i, "world": world.name} for i in range(scale)]
+
         return corpus
 
     def export(
