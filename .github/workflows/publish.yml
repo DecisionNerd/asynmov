@@ -57,6 +57,7 @@ jobs:
     name: Publish to PyPI
     needs: [build-wheels, build-sdist]
     runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       id-token: write  # required for trusted publishing (OIDC)
     steps:
