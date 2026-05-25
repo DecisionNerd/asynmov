@@ -1,0 +1,51 @@
+[build-system]
+requires = ["maturin>=1.8,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "asynmov"
+version = "0.0.1a0"
+description = "Generate large corpora of synthetic data for world building"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { file = "LICENSE" }
+keywords = ["world-building", "synthetic-data", "procedural-generation", "fiction", "rust"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Other Audience",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
+    "Topic :: Games/Entertainment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/davidspencer/asynmov"
+Repository = "https://github.com/davidspencer/asynmov"
+Issues = "https://github.com/davidspencer/asynmov/issues"
+
+[project.scripts]
+asynmov = "asynmov.cli:main"
+
+[tool.maturin]
+# Python source is under python/
+python-source = "python"
+# The Rust extension module name must match what lib.rs declares
+module-name = "asynmov._core"
+# Build for the free-threaded Python ABI when available
+features = ["pyo3/extension-module"]
+
+[dependency-groups]
+dev = [
+    "maturin>=1.8",
+    "pytest>=8.0",
+    "pytest-benchmark>=4.0",
+    "hypothesis>=6.0",
+    "mypy>=1.0",
+    "ruff>=0.4",
+]
