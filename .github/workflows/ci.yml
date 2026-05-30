@@ -29,9 +29,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.13"  # any 3.11–3.13 works; abi3 wheel covers all three
       - name: Install maturin and dev deps
-        run: pip install maturin pytest hypothesis
+        run: pip install maturin pytest hypothesis polars
       - name: Build and install (dev mode)
         run: maturin develop --manifest-path crates/asynmov-py/Cargo.toml
       - run: pytest tests/ -v

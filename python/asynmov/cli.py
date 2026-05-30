@@ -18,9 +18,9 @@ def main() -> None:
     gen.add_argument("--output", required=True, metavar="DIR", help="Output directory.")
     gen.add_argument(
         "--format",
-        choices=["json", "csv", "jsonl"],
-        default="json",
-        help="Output format (default: json).",
+        choices=["parquet", "json", "csv", "jsonl"],
+        default="parquet",
+        help="Output format (default: parquet).",
     )
 
     val = sub.add_parser("validate", help="Validate a config file without generating.")
@@ -40,7 +40,8 @@ def _cmd_generate(args: argparse.Namespace) -> None:
     world = World.from_config(args.config)
     corpus = world.generate(scale=args.scale)
     corpus.export(args.output, format=args.format)
-    print(f"Generated {len(corpus.entities)} entities → {args.output}")
+    n = len(corpus.entities) if corpus.entities is not None else 0
+    print(f"Generated {n} entities → {args.output}")
 
 
 def _cmd_validate(args: argparse.Namespace) -> None:

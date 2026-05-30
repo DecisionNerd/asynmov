@@ -32,7 +32,8 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --interpreter python3.13 --manifest-path crates/asynmov-py/Cargo.toml
+          # abi3-py311 produces a single cp311-abi3 wheel compatible with 3.11–3.13
+          args: --release --out dist --manifest-path crates/asynmov-py/Cargo.toml
           sccache: true
           manylinux: auto
       - uses: actions/upload-artifact@v4
