@@ -32,8 +32,10 @@ jobs:
           python-version: "3.13"  # any 3.11–3.13 works; abi3 wheel covers all three
       - name: Install maturin and dev deps
         run: pip install maturin pytest hypothesis polars
-      - name: Build and install (dev mode)
-        run: maturin develop --manifest-path crates/asynmov-py/Cargo.toml
+      - name: Build wheel and install
+        run: |
+          maturin build --release --manifest-path crates/asynmov-py/Cargo.toml --out dist
+          pip install --no-index --find-links dist asynmov
       - run: pytest tests/ -v
 
   node:
