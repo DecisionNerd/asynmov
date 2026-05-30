@@ -1,5 +1,5 @@
 {
-  "name": "asynmov",
+  "name": "@asynmov/asynmov",
   "version": "0.0.2",
   "description": "Generate large corpora of synthetic data for world building",
   "main": "index.js",
@@ -24,18 +24,17 @@
   "scripts": {
     "build": "napi build --platform --release --output-dir . --manifest-path ../crates/asynmov-node/Cargo.toml",
     "build:debug": "napi build --platform --output-dir . --manifest-path ../crates/asynmov-node/Cargo.toml",
-    "prepublishOnly": "napi prepublish -t npm",
-    "test": "node --test"
+"test": "node --test"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3"
   },
   "optionalDependencies": {
-    "@asynmov/asynmov-linux-x64-gnu": "*",
-    "@asynmov/asynmov-linux-x64-musl": "*",
-    "@asynmov/asynmov-linux-arm64-gnu": "*",
-    "@asynmov/asynmov-darwin-x64": "*",
-    "@asynmov/asynmov-darwin-arm64": "*",
-    "@asynmov/asynmov-win32-x64-msvc": "*"
+    "@asynmov/asynmov-linux-x64-gnu": "0.0.2",
+    "@asynmov/asynmov-linux-x64-musl": "0.0.2",
+    "@asynmov/asynmov-linux-arm64-gnu": "0.0.2",
+    "@asynmov/asynmov-darwin-x64": "0.0.2",
+    "@asynmov/asynmov-darwin-arm64": "0.0.2",
+    "@asynmov/asynmov-win32-x64-msvc": "0.0.2"
   }
 }

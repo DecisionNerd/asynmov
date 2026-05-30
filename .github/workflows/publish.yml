@@ -17,7 +17,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - runner: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-          - runner: macos-latest
+          - runner: macos-13
             target: x86_64-apple-darwin
           - runner: macos-latest
             target: aarch64-apple-darwin
@@ -79,8 +79,10 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
           - runner: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - runner: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-          - runner: macos-latest
+          - runner: macos-13
             target: x86_64-apple-darwin
           - runner: macos-latest
             target: aarch64-apple-darwin
@@ -96,15 +98,25 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
+      - name: Install zig (Linux cross-compilation)
+        if: runner.os == 'Linux'
+        uses: goto-bus-stop/setup-zig@v2
       - name: Install napi-rs CLI
         run: npm install -g @napi-rs/cli
       - name: Build
         working-directory: npm
-        run: napi build --platform --release --target ${{ matrix.target }} --manifest-path ../crates/asynmov-node/Cargo.toml
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            napi build --platform --release --target ${{ matrix.target }} --output-dir . --cross-compile --manifest-path ../crates/asynmov-node/Cargo.toml
+          else
+            napi build --platform --release --target ${{ matrix.target }} --output-dir . --manifest-path ../crates/asynmov-node/Cargo.toml
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: node-${{ matrix.target }}
           path: npm/*.node
+          if-no-files-found: error
 
   publish-npm:
     name: Publish to npm
@@ -117,13 +129,32 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
-      - uses: actions/download-artifact@v4
+      - name: Install napi-rs CLI
+        run: npm install -g @napi-rs/cli
+      - name: Download all node artifacts
+        uses: actions/download-artifact@v4
         with:
           pattern: node-*
           merge-multiple: true
-          path: npm
-      - name: Publish
+          path: npm/artifacts
+      - name: Move binaries into platform packages
         working-directory: npm
-        run: npm publish --access public
+        run: napi artifacts --output-dir artifacts --npm-dir .
+      - name: Publish platform packages
+        working-directory: npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for dir in linux-x64-gnu linux-x64-musl linux-arm64-gnu darwin-x64 darwin-arm64 win32-x64-msvc; do
+            if [ -d "$dir" ] && ls "$dir"/*.node 1>/dev/null 2>&1; then
+              echo "Publishing @asynmov/asynmov-$dir..."
+              (cd "$dir" && npm publish --access public)
+            else
+              echo "Skipping $dir — no .node binary found"
+            fi
+          done
+      - name: Publish root package
+        working-directory: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

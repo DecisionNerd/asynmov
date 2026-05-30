@@ -1,0 +1,27 @@
+{
+  "name": "@asynmov/asynmov-darwin-x64",
+  "version": "0.0.2",
+  "cpu": [
+    "x64"
+  ],
+  "main": "asynmov.darwin-x64.node",
+  "files": [
+    "asynmov.darwin-x64.node"
+  ],
+  "description": "Generate large corpora of synthetic data for world building",
+  "keywords": [
+    "world-building",
+    "synthetic-data",
+    "procedural-generation",
+    "rust",
+    "napi"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidspencer/asynmov"
+  },
+  "os": [
+    "darwin"
+  ]
+}

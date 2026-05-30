@@ -1,0 +1,30 @@
+{
+  "name": "@asynmov/asynmov-linux-x64-musl",
+  "version": "0.0.2",
+  "cpu": [
+    "x64"
+  ],
+  "main": "asynmov.linux-x64-musl.node",
+  "files": [
+    "asynmov.linux-x64-musl.node"
+  ],
+  "description": "Generate large corpora of synthetic data for world building",
+  "keywords": [
+    "world-building",
+    "synthetic-data",
+    "procedural-generation",
+    "rust",
+    "napi"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidspencer/asynmov"
+  },
+  "os": [
+    "linux"
+  ],
+  "libc": [
+    "musl"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@asynmov/asynmov-win32-x64-msvc",
+  "version": "0.0.2",
+  "cpu": [
+    "x64"
+  ],
+  "main": "asynmov.win32-x64-msvc.node",
+  "files": [
+    "asynmov.win32-x64-msvc.node"
+  ],
+  "description": "Generate large corpora of synthetic data for world building",
+  "keywords": [
+    "world-building",
+    "synthetic-data",
+    "procedural-generation",
+    "rust",
+    "napi"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidspencer/asynmov"
+  },
+  "os": [
+    "win32"
+  ]
+}
