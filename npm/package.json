@@ -1,0 +1,41 @@
+{
+  "name": "asynmov",
+  "version": "0.0.2",
+  "description": "Generate large corpora of synthetic data for world building",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davidspencer/asynmov"
+  },
+  "keywords": ["world-building", "synthetic-data", "procedural-generation", "rust", "napi"],
+  "napi": {
+    "binaryName": "asynmov",
+    "targets": [
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-pc-windows-msvc"
+    ]
+  },
+  "scripts": {
+    "build": "napi build --platform --release --output-dir . --manifest-path ../crates/asynmov-node/Cargo.toml",
+    "build:debug": "napi build --platform --output-dir . --manifest-path ../crates/asynmov-node/Cargo.toml",
+    "prepublishOnly": "napi prepublish -t npm",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3"
+  },
+  "optionalDependencies": {
+    "@asynmov/asynmov-linux-x64-gnu": "*",
+    "@asynmov/asynmov-linux-x64-musl": "*",
+    "@asynmov/asynmov-linux-arm64-gnu": "*",
+    "@asynmov/asynmov-darwin-x64": "*",
+    "@asynmov/asynmov-darwin-arm64": "*",
+    "@asynmov/asynmov-win32-x64-msvc": "*"
+  }
+}

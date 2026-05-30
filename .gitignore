@@ -52,6 +52,13 @@ __pypackages__/
 python/asynmov/_core*.so
 python/asynmov/_core*.pyd
 
+# ── Node / napi-rs ────────────────────────────────────────────────────────────
+npm/asynmov.*.node
+npm/node_modules/
+npm/package-lock.json
+crates/asynmov-node/asynmov.*.node
+crates/asynmov-node/index.d.ts
+
 # ── IDE / OS ──────────────────────────────────────────────────────────────────
 .idea/
 .vscode/

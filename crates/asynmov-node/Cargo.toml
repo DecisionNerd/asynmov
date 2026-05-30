@@ -1,0 +1,18 @@
+[package]
+name = "asynmov-node"
+version = "0.0.2"
+edition = "2021"
+description = "napi-rs Node.js bindings for asynmov"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+asynmov-core = { path = "../asynmov-core" }
+napi = { version = "2", features = ["napi6"] }
+napi-derive = { version = "2", features = ["type-def"] }
+serde_json = "1"
+
+[build-dependencies]
+napi-build = "2"

@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish
 
 on:
   push:
@@ -6,8 +6,9 @@ on:
       - "v*"
 
 jobs:
+  # ── Python wheels (maturin / PyPI) ──────────────────────────────────────────
   build-wheels:
-    name: Build wheels (${{ matrix.target }})
+    name: Python wheel (${{ matrix.target }})
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -31,7 +32,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.target }}
-          args: --release --out dist --interpreter python3.13
+          args: --release --out dist --interpreter python3.13 --manifest-path crates/asynmov-py/Cargo.toml
           sccache: true
           manylinux: auto
       - uses: actions/upload-artifact@v4
@@ -40,7 +41,7 @@ jobs:
           path: dist
 
   build-sdist:
-    name: Build source distribution
+    name: Python sdist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,17 +54,75 @@ jobs:
           name: sdist
           path: dist
 
-  publish:
+  publish-pypi:
     name: Publish to PyPI
     needs: [build-wheels, build-sdist]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write  # required for trusted publishing (OIDC)
+      id-token: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
           path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # ── Node native modules (napi-rs / npm) ─────────────────────────────────────
+  build-node:
+    name: Node binary (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - runner: macos-latest
+            target: x86_64-apple-darwin
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: Install napi-rs CLI
+        run: npm install -g @napi-rs/cli
+      - name: Build
+        working-directory: npm
+        run: napi build --platform --release --target ${{ matrix.target }} --manifest-path ../crates/asynmov-node/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: node-${{ matrix.target }}
+          path: npm/*.node
+
+  publish-npm:
+    name: Publish to npm
+    needs: build-node
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: node-*
+          merge-multiple: true
+          path: npm
       - name: Publish
-        uses: pypa/gh-action-pypi-publish@release/v1
+        working-directory: npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

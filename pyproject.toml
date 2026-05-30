@@ -33,11 +33,9 @@ Issues = "https://github.com/davidspencer/asynmov/issues"
 asynmov = "asynmov.cli:main"
 
 [tool.maturin]
-# Python source is under python/
 python-source = "python"
-# The Rust extension module name must match what lib.rs declares
 module-name = "asynmov._core"
-# Build for the free-threaded Python ABI when available
+manifest-path = "crates/asynmov-py/Cargo.toml"
 features = ["pyo3/extension-module"]
 
 [dependency-groups]
