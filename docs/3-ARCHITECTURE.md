@@ -2,149 +2,218 @@
 
 ## Overview
 
-Asynmov is a two-layer system: a **Python package** that owns the public API, configuration, and orchestration, and a **Rust core** that owns high-throughput data generation. The layers communicate through a thin PyO3 binding layer.
+Asynmov is a **Rust-first** project. All logic — config parsing, seed management, and data generation — lives in `asynmov-core`. Language surfaces (Python via PyO3, Node.js via napi-rs) are thin bindings that call into core and translate the result into idiomatic types for each ecosystem.
 
 ```
-┌─────────────────────────────────────────────┐
-│                  User Code                  │
-│         Python  /  CLI  /  Config           │
-└─────────────────────┬───────────────────────┘
-                      │
-┌─────────────────────▼───────────────────────┐
-│              Python Package                 │
-│   World  │  Config  │  Corpus  │  Exporters │
-└─────────────────────┬───────────────────────┘
-                      │  PyO3 bindings
-┌─────────────────────▼───────────────────────┐
-│                 Rust Core                   │
-│  Generators  │  Constraint Engine  │  RNG   │
-└─────────────────────────────────────────────┘
-```
-
----
-
-## Python Layer
-
-The Python layer is responsible for:
-
-- **Configuration** — loading, validating, and normalising TOML/dict world configs.
-- **Orchestration** — driving the generation pipeline, managing entity IDs, sequencing generation passes.
-- **Corpus management** — collecting and indexing generated records in memory or on disk.
-- **Export** — serialising corpora to JSON, CSV, JSONL.
-- **CLI** — the `asynmov` command-line tool.
-- **Extension API** — hooks that users can implement to add custom generators or constraints.
-
-### Package layout (intended)
-
-```
-asynmov/
-  __init__.py          # public API re-exports
-  world.py             # World class — top-level entry point
-  config.py            # Config loading and validation
-  corpus.py            # Corpus collection and indexing
-  exporters/
-    json.py
-    csv.py
-    jsonl.py
-  generators/          # Python-side generator interfaces (delegate to Rust)
-    characters.py
-    events.py
-    relationships.py
-  _core/               # PyO3 extension module (compiled Rust)
+┌──────────────────────────────────────────────────────────┐
+│                       User Code                          │
+│         Python  /  Node.js  /  CLI  /  TOML config       │
+└──────────────┬───────────────────────┬───────────────────┘
+               │                       │
+┌──────────────▼────────┐  ┌───────────▼───────────────────┐
+│   Python surface      │  │        Node.js surface        │
+│  python/asynmov/      │  │          npm/                 │
+│  World · Corpus · CLI │  │  index.js · index.d.ts        │
+└──────────────┬────────┘  └───────────┬───────────────────┘
+               │ PyO3                  │ napi-rs
+┌──────────────▼────────┐  ┌───────────▼───────────────────┐
+│   crates/asynmov-py   │  │    crates/asynmov-node        │
+│   (cdylib)            │  │    (cdylib)                   │
+└──────────────┬────────┘  └───────────┬───────────────────┘
+               └───────────┬───────────┘
+                           │
+              ┌────────────▼────────────┐
+              │   crates/asynmov-core   │
+              │  config · rng ·         │
+              │  generators::entities   │
+              └─────────────────────────┘
 ```
 
 ---
 
-## Rust Core
-
-The Rust core is responsible for:
-
-- **High-throughput generation** — producing raw attribute values, names, dates, and identifiers at scale.
-- **Constraint satisfaction** — enforcing world rules and causal ordering within and across entities.
-- **Seeded RNG** — providing a deterministic, seed-driven random number source (e.g. `rand::rngs::SmallRng`).
-- **Parallelism** — using Rayon for data-parallel generation across entity batches.
-
-The Rust crate is compiled as a Python extension module using [PyO3](https://pyo3.rs/) and [maturin](https://github.com/PyO3/maturin). It exposes a minimal set of classes and functions to the Python layer — it does not implement business logic or know about configuration files.
-
-### Crate layout (intended)
+## Workspace layout
 
 ```
-src/
-  lib.rs               # PyO3 module definition
-  rng.rs               # Seeded RNG wrappers
-  generators/
-    names.rs
-    dates.rs
-    attributes.rs
-    events.rs
-    relationships.rs
-  constraints/
-    engine.rs
-    rules.rs
-```
-
----
-
-## Data Flow
-
-```
-Config file
-    │
-    ▼
-Config::load()           # Python: validate and normalise
-    │
-    ▼
-World::generate(scale)   # Python: orchestrate passes
-    │
-    ├─► Pass 1: generate entity skeletons (Rust)
-    │       → list of {id, seed_attributes}
-    │
-    ├─► Pass 2: resolve entity attributes (Rust + constraints)
-    │       → list of {id, full_attributes}
-    │
-    ├─► Pass 3: generate events per entity (Rust)
-    │       → list of {entity_id, event_type, timestamp, payload}
-    │
-    ├─► Pass 4: generate relationships (Rust)
-    │       → list of {entity_a, entity_b, type, metadata}
-    │
-    └─► Corpus::collect()  # Python: assemble and index
-            │
-            ▼
-        Exporter::write()  # Python: serialise to disk
+Cargo.toml                        # workspace root; [profile.release] here
+crates/
+  asynmov-core/                   # pure Rust, no FFI dependencies
+    src/
+      lib.rs
+      config.rs                   # WorldConfig, WorldMeta, ConfigError
+      rng.rs                      # make_seed(Option<u64>) → u64
+      generators/
+        mod.rs
+        entities.rs               # AttrSpec, AttrDist, GeneratedData, Column
+  asynmov-py/                     # PyO3 cdylib → asynmov._core
+    src/lib.rs
+  asynmov-node/                   # napi-rs cdylib
+    src/lib.rs
+    build.rs
+npm/                              # Node package root
+  index.js                        # platform-native loader
+  index.d.ts                      # TypeScript types
+  package.json                    # @asynmov/asynmov
+  linux-x64-gnu/package.json      # @asynmov/asynmov-linux-x64-gnu
+  linux-x64-musl/package.json
+  linux-arm64-gnu/package.json
+  darwin-x64/package.json
+  darwin-arm64/package.json
+  win32-x64-msvc/package.json
+python/
+  asynmov/
+    __init__.py                   # re-exports: World, make_seed, validate_config, generate_from_toml
+    world.py                      # World dataclass — thin handle over TOML src
+    corpus.py                     # Corpus — holds polars.DataFrame, drives export
+    cli.py                        # argparse CLI: generate / validate
+    py.typed
 ```
 
 ---
 
-## Key Design Decisions
+## asynmov-core
 
-### Why Rust for the core?
+The entire business logic lives here. There are no PyO3 or napi-rs imports.
 
-Generating a corpus of 1M entities with events and relationships involves hundreds of millions of small computations. Python's GIL and interpreter overhead make this impractical at that scale. Rust provides C-level throughput and native parallelism without a separate process boundary.
+### `config.rs`
 
-### Why PyO3 over subprocess or gRPC?
+Deserialises a TOML string into `WorldConfig` using the `toml` crate:
 
-PyO3 gives zero-copy data sharing between Python and Rust within the same process. There is no serialisation overhead at the boundary, and users install a single wheel — no daemon, no socket, no extra process.
+```rust
+pub struct WorldConfig {
+    pub world: WorldMeta,        // name, seed: Option<u64>
+    pub attributes: Vec<AttrSpec>,
+}
+```
 
-### Why multi-pass generation?
+`WorldConfig::from_toml(src: &str) -> Result<Self, ConfigError>` is the only entry point for config parsing. Both language surfaces call this.
 
-Entities, events, and relationships have dependencies on each other. A single-pass approach would require speculative generation and rollback. Multi-pass makes dependencies explicit and enables parallel processing within each pass.
+### `rng.rs`
 
-### Why TOML for configuration?
+```rust
+pub fn make_seed(seed: Option<u64>) -> u64
+```
 
-TOML is human-readable, has first-class support for tables and arrays, and maps cleanly to Python dicts and Rust structs. It is a better fit for hierarchical world configs than INI or flat JSON.
+Returns the seed unchanged if provided, or draws from OS entropy via `SmallRng::from_os_rng()`.
+
+### `generators/entities.rs`
+
+**Input:** `seed: u64`, `scale: u64`, `specs: &[AttrSpec]`
+
+**Output:** `GeneratedData { ids: Vec<u64>, columns: Vec<(String, Column)> }`
+
+`Column` is an enum:
+
+```rust
+pub enum Column {
+    Int(Vec<i64>),
+    Float(Vec<f64>),
+    Bool(Vec<bool>),
+    Utf8(Vec<String>),
+}
+```
+
+The generator is **column-parallel**: Rayon maps over the spec slice, each column generated independently. Within a column, per-entity RNGs are derived deterministically from the root seed so results are identical regardless of thread scheduling:
+
+```
+entity_seed = root_seed.wrapping_add(id).wrapping_mul(6364136223846793005)
+```
+
+Each column's generator fast-forwards its RNG past prior columns to maintain independence without row-major allocation.
+
+**Supported distributions** (via `AttrDist`):
+
+| Variant | Column type |
+|---------|-------------|
+| `UniformInt { low, high }` | `Int` |
+| `UniformFloat { low, high }` | `Float` |
+| `Normal { mean, std_dev, min?, max? }` | `Float` |
+| `Choice { values: Vec<ChoiceValue>, weights? }` | determined by first value: `Bool` / `Int` / `Float` / `Utf8` |
+
+`ChoiceValue` is `#[serde(untagged)]` so TOML booleans, integers, floats, and strings all deserialise correctly.
 
 ---
 
-## Build System
+## asynmov-py
 
-Rust compilation is managed by [maturin](https://github.com/PyO3/maturin). For development:
+A ~50-line cdylib. Exposes three functions to Python:
 
+| Function | Returns |
+|----------|---------|
+| `make_seed(seed=None)` | `int` |
+| `validate_config(toml_str)` | `None` or raises `ValueError` |
+| `generate_from_toml(toml_str, scale)` | `polars.DataFrame` |
+
+`generate_from_toml` calls `WorldConfig::from_toml`, then `rng::make_seed`, then `entities::generate`, and converts `GeneratedData.columns` into Polars `Series` via `pyo3-polars`. The DataFrame is returned zero-copy — no intermediate JSON.
+
+Built with `pyo3 abi3-py311` so a single wheel runs on CPython 3.11, 3.12, and 3.13.
+
+---
+
+## asynmov-node
+
+A ~60-line cdylib. Exposes three functions via napi-rs:
+
+| Function | Returns |
+|----------|---------|
+| `makeSeed(seed?)` | `number` |
+| `validateConfig(tomlStr)` | `void` or throws |
+| `generateFromToml(tomlStr, scale)` | `string` (JSON array of row objects) |
+
+`generateFromToml` calls the same core path as the Python surface, then transposes the columnar result back to row-major JSON for idiomatic JavaScript consumption.
+
+---
+
+## Python surface
+
+`python/asynmov/` is purely a convenience layer — no logic:
+
+- **`World`** — loads a TOML file, calls `validate_config`, holds `toml_src: str` for Rust to parse
+- **`Corpus`** — wraps the `polars.DataFrame` returned by `generate_from_toml`; drives Polars export writers
+- **`cli.py`** — argparse wrapper around `World.from_config` + `Corpus.export`
+
+---
+
+## Data flow
+
+```
+TOML file on disk
+    │
+    ▼ Path.read_text()            [Python]
+    │
+    ▼ validate_config(toml_src)   [Rust: toml::from_str → WorldConfig]
+    │
+    ▼ generate_from_toml(toml_src, scale)
+          │
+          ▼ WorldConfig::from_toml()     [Rust]
+          ▼ rng::make_seed(cfg.world.seed)
+          ▼ entities::generate(seed, scale, &cfg.attributes)
+                → GeneratedData (columnar, parallel)
+          ▼ columns → polars::Series → DataFrame
+          │
+    ▼ Corpus(df)                  [Python]
+    │
+    ▼ corpus.export(dir, format)  [Polars write_parquet / write_json / ...]
+```
+
+---
+
+## Build system
+
+| Surface | Tool | Config |
+|---------|------|--------|
+| Python wheel | maturin | `pyproject.toml` → `[tool.maturin]` |
+| Node native | napi-rs CLI | `npm/package.json` → `napi` key |
+| Rust workspace | cargo | `Cargo.toml` (workspace root) |
+
+**Python dev build:**
 ```sh
-pip install maturin
-maturin develop          # compile Rust and install into current venv
+maturin build --release --manifest-path crates/asynmov-py/Cargo.toml --out dist
+pip install --no-index --find-links dist asynmov
 ```
 
-For release, maturin builds platform wheels (Linux x86_64, Linux aarch64, macOS arm64, macOS x86_64, Windows x86_64) via CI.
+**Node dev build:**
+```sh
+cd npm && npm run build:debug
+```
 
-Python packaging is managed via `pyproject.toml` with `maturin` as the build backend.
+CI builds for all platform targets are defined in `.github/workflows/` — `ci.yml` for tests, `publish.yml` for release.
